@@ -2,63 +2,63 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Presupuesto;
+use App\Models\Categoria;
 use Illuminate\Http\Request;
 
 class PresupuestoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $presupuestos = Presupuesto::where('user_id', auth()->id())
+            ->with('categoria')
+            ->where('anio', date('Y'))
+            ->where('mes', date('n'))
+            ->get();
+
+        return view('presupuestos.index', compact('presupuestos'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        $categorias = Categoria::where('user_id', auth()->id())
+            ->where('tipo', 'egreso')
+            ->whereIn('contexto', ['personal', 'ambos'])
+            ->orderBy('nombre')
+            ->get();
+
+        return view('presupuestos.create', compact('categorias'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'categoria_id'  => 'required|exists:categorias,id',
+            'monto_limite'  => 'required|numeric|min:0.01',
+            'mes'           => 'required|integer|between:1,12',
+            'anio'          => 'required|integer|min:2024',
+        ]);
+
+        Presupuesto::updateOrCreate(
+            [
+                'user_id'      => auth()->id(),
+                'categoria_id' => $request->categoria_id,
+                'mes'          => $request->mes,
+                'anio'         => $request->anio,
+            ],
+            ['monto_limite' => $request->monto_limite]
+        );
+
+        return redirect()->route('presupuestos.index')
+            ->with('success', 'Presupuesto guardado correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function destroy(Presupuesto $presupuesto)
     {
-        //
-    }
+        abort_if($presupuesto->user_id !== auth()->id(), 403);
+        $presupuesto->delete();
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return redirect()->route('presupuestos.index')
+            ->with('success', 'Presupuesto eliminado.');
     }
 }

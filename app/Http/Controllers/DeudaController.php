@@ -2,63 +2,86 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Deuda;
 use Illuminate\Http\Request;
 
 class DeudaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $deudas = Deuda::where('user_id', auth()->id())
+            ->orderBy('estado')
+            ->orderBy('fecha_vencimiento')
+            ->paginate(20);
+
+        $totalPendiente = Deuda::where('user_id', auth()->id())
+            ->where('estado', 'activa')
+            ->selectRaw('SUM(monto_total - monto_pagado) as total')
+            ->value('total') ?? 0;
+
+        return view('deudas.index', compact('deudas', 'totalPendiente'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        return view('deudas.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'acreedor'          => 'required|string|max:255',
+            'monto_total'       => 'required|numeric|min:0.01',
+            'tipo'              => 'required|in:prestamo,tarjeta,cuota,otro',
+            'fecha_inicio'      => 'required|date',
+            'fecha_vencimiento' => 'nullable|date',
+            'interes'           => 'nullable|numeric|min:0',
+        ]);
+
+        Deuda::create([
+            'user_id'           => auth()->id(),
+            'acreedor'          => $request->acreedor,
+            'monto_total'       => $request->monto_total,
+            'monto_pagado'      => 0,
+            'interes'           => $request->interes ?? 0,
+            'tipo'              => $request->tipo,
+            'fecha_inicio'      => $request->fecha_inicio,
+            'fecha_vencimiento' => $request->fecha_vencimiento,
+            'estado'            => 'activa',
+            'notas'             => $request->notas,
+        ]);
+
+        return redirect()->route('deudas.index')
+            ->with('success', 'Deuda registrada correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function edit(Deuda $deuda)
     {
-        //
+        abort_if($deuda->user_id !== auth()->id(), 403);
+        return view('deudas.edit', compact('deuda'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function update(Request $request, Deuda $deuda)
     {
-        //
+        abort_if($deuda->user_id !== auth()->id(), 403);
+
+        $request->validate([
+            'monto_pagado' => 'required|numeric|min:0',
+            'estado'       => 'required|in:activa,pagada,vencida',
+        ]);
+
+        $deuda->update($request->only('monto_pagado', 'estado', 'notas'));
+
+        return redirect()->route('deudas.index')
+            ->with('success', 'Deuda actualizada correctamente.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function destroy(Deuda $deuda)
     {
-        //
-    }
+        abort_if($deuda->user_id !== auth()->id(), 403);
+        $deuda->delete();
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return redirect()->route('deudas.index')
+            ->with('success', 'Deuda eliminada.');
     }
 }

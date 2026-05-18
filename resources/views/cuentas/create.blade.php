@@ -21,7 +21,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-medium">Nombre</label>
                         <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror"
-                               placeholder="Ej: Caja efectivo, Banrural, Tigo Money"
+                               placeholder="Ej: Efectivo, Banco de Occidente, Tigo Money"
                                value="{{ old('nombre') }}">
                         @error('nombre')
                             <div class="invalid-feedback">{{ $message }}</div>

@@ -43,8 +43,10 @@
                     <div class="mb-3">
                         <label class="form-label fw-medium">Contexto</label>
                         <select name="contexto" class="form-select @error('contexto') is-invalid @enderror">
-                            <option value="personal" {{ $cuenta->contexto == 'personal' ? 'selected' : '' }}>Personal</option>
                             <option value="negocio"  {{ $cuenta->contexto == 'negocio'  ? 'selected' : '' }}>Negocio</option>
+                            <option value="impresiones"  {{ $cuenta->contexto == 'impresiones'  ? 'selected' : '' }}>Impresiones</option>
+                            <option value="recargas"  {{ $cuenta->contexto == 'recargas'  ? 'selected' : '' }}>Recargas</option>
+                            <option value="personal" {{ $cuenta->contexto == 'personal' ? 'selected' : '' }}>Personal</option>
                         </select>
                         @error('contexto')
                             <div class="invalid-feedback">{{ $message }}</div>
