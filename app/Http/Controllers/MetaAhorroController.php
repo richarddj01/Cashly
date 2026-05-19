@@ -2,63 +2,89 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MetaAhorro;
+use App\Models\Cuenta;
 use Illuminate\Http\Request;
 
 class MetaAhorroController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $metas = MetaAhorro::where('user_id', auth()->id())
+            ->with('cuenta')
+            ->orderBy('estado')
+            ->orderBy('fecha_limite')
+            ->get();
+
+        return view('metas-ahorro.index', compact('metas'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        $cuentas = Cuenta::where('user_id', auth()->id())
+            ->where('activa', true)
+            ->where('contexto', 'personal')
+            ->get();
+
+        return view('metas-ahorro.create', compact('cuentas'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'nombre'          => 'required|string|max:255',
+            'cuenta_id'       => 'required|exists:cuentas,id',
+            'monto_objetivo'  => 'required|numeric|min:0.01',
+            'monto_actual'    => 'nullable|numeric|min:0',
+            'fecha_limite'    => 'nullable|date',
+        ]);
+
+        MetaAhorro::create([
+            'user_id'        => auth()->id(),
+            'cuenta_id'      => $request->cuenta_id,
+            'nombre'         => $request->nombre,
+            'monto_objetivo' => $request->monto_objetivo,
+            'monto_actual'   => $request->monto_actual ?? 0,
+            'fecha_limite'   => $request->fecha_limite,
+            'estado'         => 'activa',
+            'notas'          => $request->notas,
+        ]);
+
+        return redirect()->route('metas-ahorro.index')
+            ->with('success', 'Meta de ahorro creada correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function edit(MetaAhorro $metasAhorro)
     {
-        //
+        abort_if($metasAhorro->user_id !== auth()->id(), 403);
+
+        $cuentas = Cuenta::where('user_id', auth()->id())
+            ->where('activa', true)->get();
+
+        return view('metas-ahorro.edit', compact('metasAhorro', 'cuentas'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function update(Request $request, MetaAhorro $metasAhorro)
     {
-        //
+        abort_if($metasAhorro->user_id !== auth()->id(), 403);
+
+        $request->validate([
+            'monto_actual' => 'required|numeric|min:0',
+            'estado'       => 'required|in:activa,completada,cancelada',
+        ]);
+
+        $metasAhorro->update($request->only('monto_actual', 'estado', 'notas'));
+
+        return redirect()->route('metas-ahorro.index')
+            ->with('success', 'Meta actualizada correctamente.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function destroy(MetaAhorro $metasAhorro)
     {
-        //
-    }
+        abort_if($metasAhorro->user_id !== auth()->id(), 403);
+        $metasAhorro->delete();
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return redirect()->route('metas-ahorro.index')
+            ->with('success', 'Meta eliminada.');
     }
 }
