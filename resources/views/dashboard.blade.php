@@ -7,7 +7,6 @@
 {{-- Tarjetas de resumen --}}
 <div class="row g-3 mb-4">
 
-    {{-- Ingresos personales --}}
     <div class="col-md-3">
         <div class="card card-stat h-100" style="border-color: #4cc9f0;">
             <div class="card-body">
@@ -26,7 +25,6 @@
         </div>
     </div>
 
-    {{-- Egresos personales --}}
     <div class="col-md-3">
         <div class="card card-stat h-100" style="border-color: #f72585;">
             <div class="card-body">
@@ -45,7 +43,6 @@
         </div>
     </div>
 
-    {{-- Balance negocio --}}
     <div class="col-md-3">
         <div class="card card-stat h-100" style="border-color: #f8961e;">
             <div class="card-body">
@@ -64,7 +61,6 @@
         </div>
     </div>
 
-    {{-- Comisiones recargas --}}
     <div class="col-md-3">
         <div class="card card-stat h-100" style="border-color: #7209b7;">
             <div class="card-body">
@@ -84,10 +80,76 @@
     </div>
 
 </div>
+<div class="text-end mb-3">
+    <a href="{{ route('reportes.resumen') }}" class="btn btn-outline-danger" target="_blank">
+        <i class="bi bi-file-pdf me-1"></i> Descargar resumen del mes
+    </a>
+</div>
 
+{{-- Gráficas --}}
 <div class="row g-3 mb-4">
 
-    {{-- Cuentas --}}
+    {{-- Flujo de caja personal --}}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">
+                    <i class="bi bi-graph-up me-2 text-primary"></i>
+                    Flujo de caja personal — últimos 6 meses
+                </h6>
+                <canvas id="grafica-personal" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    {{-- Flujo de caja negocio --}}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">
+                    <i class="bi bi-graph-up me-2 text-warning"></i>
+                    Flujo de caja negocio — últimos 6 meses
+                </h6>
+                <canvas id="grafica-negocio" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    {{-- Gastos personales por categoría --}}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">
+                    <i class="bi bi-pie-chart me-2 text-danger"></i>
+                    Gastos personales por categoría — este mes
+                </h6>
+                @if($gastosPorCategoria->isEmpty())
+                    <p class="text-muted small text-center py-4">Sin gastos categorizados este mes.</p>
+                @else
+                    <canvas id="grafica-categorias" height="200"></canvas>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- Ingresos negocio por área --}}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">
+                    <i class="bi bi-bar-chart me-2 text-success"></i>
+                    Ingresos negocio por área — este mes
+                </h6>
+                <canvas id="grafica-areas" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{{-- Cuentas, facturas y últimos movimientos --}}
+<div class="row g-3 mb-4">
+
     <div class="col-md-4">
         <div class="card h-100">
             <div class="card-body">
@@ -115,7 +177,6 @@
         </div>
     </div>
 
-    {{-- Facturas pendientes --}}
     <div class="col-md-4">
         <div class="card h-100">
             <div class="card-body">
@@ -142,7 +203,6 @@
         </div>
     </div>
 
-    {{-- Últimos movimientos personales --}}
     <div class="col-md-4">
         <div class="card h-100">
             <div class="card-body">
@@ -152,7 +212,9 @@
                 @forelse($ultimosMovimientos as $mov)
                     <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                         <div>
-                            <span class="fw-medium small">{{ $mov->descripcion ?? ucfirst(str_replace('_', ' ', $mov->tipo)) }}</span>
+                            <span class="fw-medium small">
+                                {{ $mov->descripcion ?? ucfirst(str_replace('_', ' ', $mov->tipo)) }}
+                            </span>
                             <br>
                             <small class="text-muted">{{ $mov->fecha->format('d/m/Y') }}</small>
                         </div>
@@ -174,10 +236,153 @@
     <div class="alert alert-warning d-flex align-items-center" role="alert">
         <i class="bi bi-arrow-down-up me-2 fs-5"></i>
         <div>
-            Tienes <strong>L. {{ number_format($prestamosPendientes, 2) }}</strong> en préstamos pendientes entre tu cuenta personal y el negocio.
+            Tienes <strong>L. {{ number_format($prestamosPendientes, 2) }}</strong> en préstamos pendientes
+            entre tu cuenta personal y el negocio.
             <a href="{{ route('prestamos.index') }}" class="alert-link ms-2">Ver detalle →</a>
         </div>
     </div>
 @endif
 
 @endsection
+
+@push('scripts')
+<script>
+// ── Datos desde Laravel ──────────────────────────────
+const flujoCajaPersonal = @json($flujoCajaPersonal);
+const flujoCajaNegocio  = @json($flujoCajaNegocio);
+const gastosCategorias  = @json($gastosPorCategoria);
+const ingresosPorArea   = @json($ingresosPorArea);
+
+// ── Colores comunes ──────────────────────────────────
+const colorEntrada = 'rgba(25, 135, 84, 0.8)';
+const colorSalida  = 'rgba(220, 53, 69, 0.8)';
+
+// ── Gráfica 1: Flujo caja personal ──────────────────
+new Chart(document.getElementById('grafica-personal'), {
+    type: 'bar',
+    data: {
+        labels: flujoCajaPersonal.map(d => d.mes),
+        datasets: [
+            {
+                label: 'Ingresos',
+                data: flujoCajaPersonal.map(d => d.ingresos),
+                backgroundColor: colorEntrada,
+                borderRadius: 6,
+            },
+            {
+                label: 'Egresos',
+                data: flujoCajaPersonal.map(d => d.egresos),
+                backgroundColor: colorSalida,
+                borderRadius: 6,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: val => 'L. ' + val.toLocaleString()
+                }
+            }
+        }
+    }
+});
+
+// ── Gráfica 2: Flujo caja negocio ───────────────────
+new Chart(document.getElementById('grafica-negocio'), {
+    type: 'bar',
+    data: {
+        labels: flujoCajaNegocio.map(d => d.mes),
+        datasets: [
+            {
+                label: 'Ingresos',
+                data: flujoCajaNegocio.map(d => d.ingresos),
+                backgroundColor: 'rgba(248, 150, 30, 0.8)',
+                borderRadius: 6,
+            },
+            {
+                label: 'Egresos',
+                data: flujoCajaNegocio.map(d => d.egresos),
+                backgroundColor: colorSalida,
+                borderRadius: 6,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: val => 'L. ' + val.toLocaleString()
+                }
+            }
+        }
+    }
+});
+
+// ── Gráfica 3: Gastos por categoría ─────────────────
+@if($gastosPorCategoria->isNotEmpty())
+new Chart(document.getElementById('grafica-categorias'), {
+    type: 'doughnut',
+    data: {
+        labels: gastosCategorias.map(d => d.nombre),
+        datasets: [{
+            data: gastosCategorias.map(d => d.total),
+            backgroundColor: gastosCategorias.map(d => d.color),
+            borderWidth: 2,
+            borderColor: '#fff',
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ' L. ' + ctx.parsed.toLocaleString('es-HN', {minimumFractionDigits: 2})
+                }
+            }
+        }
+    }
+});
+@endif
+
+// ── Gráfica 4: Ingresos negocio por área ────────────
+new Chart(document.getElementById('grafica-areas'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Papelería', 'Impresiones', 'Recargas'],
+        datasets: [{
+            data: [
+                ingresosPorArea.papeleria,
+                ingresosPorArea.impresiones,
+                ingresosPorArea.recargas,
+            ],
+            backgroundColor: [
+                'rgba(248, 150, 30, 0.8)',
+                'rgba(114, 9, 183, 0.8)',
+                'rgba(76, 201, 240, 0.8)',
+            ],
+            borderWidth: 2,
+            borderColor: '#fff',
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ' L. ' + ctx.parsed.toLocaleString('es-HN', {minimumFractionDigits: 2})
+                }
+            }
+        }
+    }
+});
+</script>
+@endpush

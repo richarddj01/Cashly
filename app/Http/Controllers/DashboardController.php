@@ -8,6 +8,7 @@ use App\Models\MovimientoNegocio;
 use App\Models\MovimientoPersonal;
 use App\Models\MovimientoRecarga;
 use App\Models\Prestamo;
+use App\Models\Categoria;
 
 class DashboardController extends Controller
 {
@@ -77,6 +78,74 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // ── DATOS PARA GRÁFICAS ──────────────────────────────
+
+        // Flujo de caja personal — últimos 6 meses
+        $meses = collect(range(5, 0))->map(function ($i) {
+            return now()->subMonths($i);
+        });
+
+        $flujoCajaPersonal = $meses->map(function ($mes) use ($user) {
+            return [
+                'mes'      => $mes->translatedFormat('M'),
+                'ingresos' => MovimientoPersonal::where('user_id', $user->id)
+                    ->where('direccion', 'entrada')->where('estado', 'pagado')
+                    ->whereMonth('fecha', $mes->month)->whereYear('fecha', $mes->year)
+                    ->sum('monto'),
+                'egresos'  => MovimientoPersonal::where('user_id', $user->id)
+                    ->where('direccion', 'salida')->where('estado', 'pagado')
+                    ->whereMonth('fecha', $mes->month)->whereYear('fecha', $mes->year)
+                    ->sum('monto'),
+            ];
+        });
+
+        // Flujo de caja negocio — últimos 6 meses
+        $flujoCajaNegocio = $meses->map(function ($mes) use ($user) {
+            return [
+                'mes'      => $mes->translatedFormat('M'),
+                'ingresos' => MovimientoNegocio::where('user_id', $user->id)
+                    ->where('direccion', 'entrada')->where('estado', 'pagado')
+                    ->whereMonth('fecha', $mes->month)->whereYear('fecha', $mes->year)
+                    ->sum('monto'),
+                'egresos'  => MovimientoNegocio::where('user_id', $user->id)
+                    ->where('direccion', 'salida')->where('estado', 'pagado')
+                    ->whereMonth('fecha', $mes->month)->whereYear('fecha', $mes->year)
+                    ->sum('monto'),
+            ];
+        });
+
+        // Gastos personales por categoría este mes
+        $gastosPorCategoria = MovimientoPersonal::where('user_id', $user->id)
+            ->where('direccion', 'salida')
+            ->where('estado', 'pagado')
+            ->whereMonth('fecha', now()->month)
+            ->whereYear('fecha', now()->year)
+            ->whereNotNull('categoria_id')
+            ->with('categoria')
+            ->get()
+            ->groupBy('categoria_id')
+            ->map(function ($movimientos) {
+                return [
+                    'nombre' => $movimientos->first()->categoria->nombre,
+                    'color'  => $movimientos->first()->categoria->color,
+                    'total'  => $movimientos->sum('monto'),
+                ];
+            })
+            ->values();
+
+        // Ingresos negocio por área este mes
+        $ingresosPorArea = [
+            'papeleria'   => MovimientoNegocio::where('user_id', $user->id)
+                ->where('area', 'papeleria')->where('direccion', 'entrada')
+                ->whereMonth('fecha', now()->month)->whereYear('fecha', now()->year)
+                ->sum('monto'),
+            'impresiones' => MovimientoNegocio::where('user_id', $user->id)
+                ->where('area', 'impresiones')->where('direccion', 'entrada')
+                ->whereMonth('fecha', now()->month)->whereYear('fecha', now()->year)
+                ->sum('monto'),
+            'recargas'    => $comisionesRecargas,
+        ];
+
         return view('dashboard', compact(
             'cuentas',
             'personalIngresos',
@@ -87,6 +156,10 @@ class DashboardController extends Controller
             'prestamosPendientes',
             'comisionesRecargas',
             'ultimosMovimientos',
+            'flujoCajaPersonal',
+            'flujoCajaNegocio',
+            'gastosPorCategoria',
+            'ingresosPorArea',
         ));
     }
 }

@@ -2,63 +2,76 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Empleado;
 use Illuminate\Http\Request;
 
 class EmpleadoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $empleados = Empleado::where('user_id', auth()->id())
+            ->orderBy('nombre')
+            ->get();
+
+        return view('empleados.index', compact('empleados'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        return view('empleados.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'nombre'        => 'required|string|max:255',
+            'cargo'         => 'nullable|string|max:255',
+            'salario'       => 'required|numeric|min:0',
+            'fecha_ingreso' => 'required|date',
+        ]);
+
+        Empleado::create([
+            'user_id'       => auth()->id(),
+            'nombre'        => $request->nombre,
+            'cargo'         => $request->cargo,
+            'salario'       => $request->salario,
+            'fecha_ingreso' => $request->fecha_ingreso,
+            'activo'        => true,
+        ]);
+
+        return redirect()->route('empleados.index')
+            ->with('success', 'Empleado registrado correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function edit(Empleado $empleado)
     {
-        //
+        abort_if($empleado->user_id !== auth()->id(), 403);
+        return view('empleados.edit', compact('empleado'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function update(Request $request, Empleado $empleado)
     {
-        //
+        abort_if($empleado->user_id !== auth()->id(), 403);
+
+        $request->validate([
+            'nombre'        => 'required|string|max:255',
+            'cargo'         => 'nullable|string|max:255',
+            'salario'       => 'required|numeric|min:0',
+            'fecha_ingreso' => 'required|date',
+        ]);
+
+        $empleado->update($request->only('nombre', 'cargo', 'salario', 'fecha_ingreso', 'activo'));
+
+        return redirect()->route('empleados.index')
+            ->with('success', 'Empleado actualizado correctamente.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function destroy(Empleado $empleado)
     {
-        //
-    }
+        abort_if($empleado->user_id !== auth()->id(), 403);
+        $empleado->update(['activo' => false]);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return redirect()->route('empleados.index')
+            ->with('success', 'Empleado desactivado correctamente.');
     }
 }

@@ -9,6 +9,10 @@
     <a href="{{ route('movimientos-negocio.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i> Nuevo movimiento
     </a>
+    <a href="{{ route('reportes.negocio', ['mes' => request('mes', date('n')), 'anio' => request('anio', date('Y'))]) }}"
+       class="btn btn-outline-danger" target="_blank">
+        <i class="bi bi-file-pdf me-1"></i> Exportar PDF
+    </a>
 </div>
 
 {{-- Filtros --}}
