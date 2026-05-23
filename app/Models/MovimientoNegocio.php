@@ -13,7 +13,7 @@ class MovimientoNegocio extends Model
         'cuenta_id',
         'categoria_id',
         'empleado_id',
-        'area',
+        'area_id',
         'tipo',
         'direccion',
         'monto',
@@ -49,6 +49,11 @@ class MovimientoNegocio extends Model
     public function empleado()
     {
         return $this->belongsTo(Empleado::class);
+    }
+
+    public function area()
+    {
+        return $this->belongsTo(AreaNegocio::class, 'area_id');
     }
 
     public function prestamo()

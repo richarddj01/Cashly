@@ -9,6 +9,7 @@ use App\Models\MovimientoPersonal;
 use App\Models\MovimientoRecarga;
 use App\Models\Prestamo;
 use App\Models\Categoria;
+use App\Models\AreaNegocio;
 
 class DashboardController extends Controller
 {
@@ -133,18 +134,21 @@ class DashboardController extends Controller
             })
             ->values();
 
-        // Ingresos negocio por área este mes
-        $ingresosPorArea = [
-            'papeleria'   => MovimientoNegocio::where('user_id', $user->id)
-                ->where('area', 'papeleria')->where('direccion', 'entrada')
-                ->whereMonth('fecha', now()->month)->whereYear('fecha', now()->year)
-                ->sum('monto'),
-            'impresiones' => MovimientoNegocio::where('user_id', $user->id)
-                ->where('area', 'impresiones')->where('direccion', 'entrada')
-                ->whereMonth('fecha', now()->month)->whereYear('fecha', now()->year)
-                ->sum('monto'),
-            'recargas'    => $comisionesRecargas,
-        ];
+       // Ingresos negocio por área este mes
+        $areas = AreaNegocio::where('user_id', $user->id)->where('activa', true)->get();
+
+        $ingresosPorArea = $areas->map(function ($area) use ($user) {
+            return [
+                'nombre' => $area->nombre,
+                'color'  => $area->color,
+                'total'  => MovimientoNegocio::where('user_id', $user->id)
+                    ->where('area_id', $area->id)
+                    ->where('direccion', 'entrada')
+                    ->whereMonth('fecha', now()->month)
+                    ->whereYear('fecha', now()->year)
+                    ->sum('monto'),
+            ];
+        });
 
         return view('dashboard', compact(
             'cuentas',
@@ -160,6 +164,7 @@ class DashboardController extends Controller
             'flujoCajaNegocio',
             'gastosPorCategoria',
             'ingresosPorArea',
+            'areas',
         ));
     }
 }

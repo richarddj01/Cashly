@@ -352,22 +352,16 @@ new Chart(document.getElementById('grafica-categorias'), {
 });
 @endif
 
-// ── Gráfica 4: Ingresos negocio por área ────────────
+/// ── Gráfica 4: Ingresos negocio por área ────────────
+const areasData = @json($ingresosPorArea);
+
 new Chart(document.getElementById('grafica-areas'), {
     type: 'doughnut',
     data: {
-        labels: ['Papelería', 'Impresiones', 'Recargas'],
+        labels: areasData.map(a => a.nombre),
         datasets: [{
-            data: [
-                ingresosPorArea.papeleria,
-                ingresosPorArea.impresiones,
-                ingresosPorArea.recargas,
-            ],
-            backgroundColor: [
-                'rgba(248, 150, 30, 0.8)',
-                'rgba(114, 9, 183, 0.8)',
-                'rgba(76, 201, 240, 0.8)',
-            ],
+            data: areasData.map(a => a.total),
+            backgroundColor: areasData.map(a => a.color),
             borderWidth: 2,
             borderColor: '#fff',
         }]

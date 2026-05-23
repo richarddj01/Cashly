@@ -22,11 +22,13 @@
               class="row g-2 align-items-end">
             <div class="col-md-2">
                 <label class="form-label small fw-medium mb-1">Área</label>
-                <select name="area" class="form-select form-select-sm">
+                <select name="area_id" class="form-select form-select-sm">
                     <option value="">Todas</option>
-                    <option value="papeleria"   {{ request('area') == 'papeleria'   ? 'selected' : '' }}>Papelería</option>
-                    <option value="impresiones" {{ request('area') == 'impresiones' ? 'selected' : '' }}>Impresiones</option>
-                    <option value="compartido"  {{ request('area') == 'compartido'  ? 'selected' : '' }}>Compartido</option>
+                    @foreach($areas as $area)
+                        <option value="{{ $area->id }}" {{ request('area_id') == $area->id ? 'selected' : '' }}>
+                            {{ $area->nombre }}
+                        </option>
+                    @endforeach
                 </select>
             </div>
             <div class="col-md-2">
@@ -139,7 +141,13 @@
                             @endif
                         </td>
                         <td>
-                            <span class="badge bg-secondary">{{ ucfirst($mov->area) }}</span>
+                            @if($mov->area)
+                                <span class="badge" style="background-color:{{ $mov->area->color }};">
+                                    {{ $mov->area->nombre }}
+                                </span>
+                            @else
+                                <small class="text-muted">—</small>
+                            @endif
                         </td>
                         <td class="small text-muted">
                             {{ ucfirst(str_replace('_', ' ', $mov->tipo)) }}

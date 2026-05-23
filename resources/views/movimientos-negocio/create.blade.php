@@ -23,13 +23,22 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-medium">Área</label>
-                            <select name="area" class="form-select @error('area') is-invalid @enderror">
-                                <option value="">Selecciona...</option>
-                                <option value="papeleria"   {{ old('area') == 'papeleria'   ? 'selected' : '' }}>Papelería</option>
-                                <option value="impresiones" {{ old('area') == 'impresiones' ? 'selected' : '' }}>Impresiones</option>
-                                <option value="compartido"  {{ old('area') == 'compartido'  ? 'selected' : '' }}>Compartido</option>
+                            <select name="area_id" class="form-select @error('area_id') is-invalid @enderror">
+                                <option value="">Sin área</option>
+                                @foreach($areas as $area)
+                                    <option value="{{ $area->id }}" {{ old('area_id') == $area->id ? 'selected' : '' }}>
+                                        {{ $area->nombre }}
+                                    </option>
+                                @endforeach
                             </select>
-                            @error('area') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            @if($areas->isEmpty())
+                                <small class="text-muted">
+                                    <a href="{{ route('areas-negocio.create') }}" target="_blank">
+                                        Crear áreas del negocio
+                                    </a>
+                                </small>
+                            @endif
+                            @error('area_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
                         <div class="col-md-6">

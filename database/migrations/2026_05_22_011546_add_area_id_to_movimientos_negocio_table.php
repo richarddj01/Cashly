@@ -9,10 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('movimientos_negocio', function (Blueprint $table) {
-            $table->foreign('area_id')
-                ->references('id')
-                ->on('areas_negocio')
-                ->nullOnDelete();
+            // Agrega la nueva columna area_id
+            $table->foreignId('area_id')
+                  ->nullable()
+                  ->after('empleado_id')
+                  ->constrained('areas_negocio')
+                  ->nullOnDelete();
         });
     }
 
@@ -20,6 +22,7 @@ return new class extends Migration
     {
         Schema::table('movimientos_negocio', function (Blueprint $table) {
             $table->dropForeign(['area_id']);
+            $table->dropColumn('area_id');
         });
     }
 };

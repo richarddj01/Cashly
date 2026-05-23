@@ -14,14 +14,16 @@ use App\Http\Controllers\MetaAhorroController;
 use App\Http\Controllers\DeudaController;
 use App\Http\Controllers\PrestamoController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\AreaNegocioController;
+
 
 // Redirige la página principal al dashboard
 Route::get('/', function () {
     return redirect()->route('dashboard');
-});
+    });
 
-// Todas estas rutas requieren estar autenticado
-Route::middleware(['auth', 'verified'])->group(function () {
+    // Todas estas rutas requieren estar autenticado
+    Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard principal
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -53,6 +55,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reportes/personal', [ReporteController::class, 'personal'])->name('reportes.personal');
     Route::get('/reportes/negocio',  [ReporteController::class, 'negocio'])->name('reportes.negocio');
     Route::get('/reportes/resumen',  [ReporteController::class, 'resumen'])->name('reportes.resumen');
-});
+    });
+
+    Route::resource('areas-negocio', AreaNegocioController::class);
 
 require __DIR__.'/auth.php';
